@@ -1,0 +1,186 @@
+import java.util.ArrayList;
+import java.util.Scanner;
+import java.util.Locale;
+
+class Account {
+    private static int nextAcc = 1001;
+    private final int accNo;
+    private String holderName;
+    private double balance;
+
+    public Account(String holderName, double initialDeposit) {
+        this.accNo = nextAcc++;
+        this.holderName = holderName;
+        this.balance = Math.max(0, initialDeposit);
+    }
+
+    public int getAccNo() { return accNo; }
+    public String getHolderName() { return holderName; }
+    public double getBalance() { return balance; }
+
+    public void deposit(double amt) {
+        if (amt <= 0) throw new IllegalArgumentException("Deposit must be positive.");
+        balance += amt;
+    }
+
+    public boolean withdraw(double amt) {
+        if (amt <= 0) {
+            System.out.println("Withdrawal amount must be positive.");
+            return false;
+        }
+        if (amt > balance) {
+            System.out.println("Insufficient funds. Current balance: " + balance);
+            return false;
+        }
+        balance -= amt;
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%-6d | %-20s | %10.2f", accNo, holderName, balance);
+    }
+}
+
+public class BasicBanking {
+    private final ArrayList<Account> accounts = new ArrayList<>();
+    private final Scanner sc = new Scanner(System.in).useLocale(Locale.US);
+
+    public static void main(String[] args) {
+        new BasicBanking().run();
+    }
+
+    private void run() {
+        seedAccounts();
+        Account current = null;
+
+        while (true) {
+            showMainMenu(current);
+            int choice = readInt("Choose: ");
+            switch (choice) {
+                case 1 -> current = createAccount();
+                case 2 -> current = selectAccount();
+                case 3 -> {
+                    if (current == null) System.out.println("No account selected. Use option 2 to select one.");
+                    else deposit(current);
+                }
+                case 4 -> {
+                    if (current == null) System.out.println("No account selected. Use option 2 to select one.");
+                    else withdraw(current);
+                }
+                case 5 -> displayAccounts();
+                case 6 -> {
+                    System.out.println("Goodbye!");
+                    return;
+                }
+                default -> System.out.println("Invalid option.");
+            }
+        }
+    }
+
+    private void showMainMenu(Account current) {
+        System.out.println("\n--- Basic Banking System ---");
+        System.out.println("1. Create Account");
+        System.out.println("2. Select Account");
+        System.out.println("3. Deposit (on selected account)");
+        System.out.println("4. Withdraw (on selected account)");
+        System.out.println("5. Display All Accounts");
+        System.out.println("6. Exit");
+        System.out.println("Selected account: " + (current == null ? "None" : current.getAccNo() + " - " + current.getHolderName()));
+    }
+
+    private Account createAccount() {
+        System.out.print("Account holder name: ");
+        String name = sc.nextLine().trim();
+        double init = readNonNegativeDouble("Initial deposit (>=0): ");
+        Account a = new Account(name, init);
+        accounts.add(a);
+        System.out.println("Created account no: " + a.getAccNo());
+        return a;
+    }
+
+    private Account selectAccount() {
+        displayAccounts();
+        int accNo = readInt("Enter account number to select: ");
+        Account a = findAccount(accNo);
+        if (a == null) System.out.println("No account with number " + accNo);
+        else System.out.println("Selected account " + a.getAccNo() + " - " + a.getHolderName());
+        return a;
+    }
+
+    private void deposit(Account a) {
+        double amt = readPositiveDouble("Deposit amount: ");
+        try {
+            a.deposit(amt);
+            System.out.printf("Deposited %.2f. New balance: %.2f%n", amt, a.getBalance());
+        } catch (IllegalArgumentException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    private void withdraw(Account a) {
+        double amt = readPositiveDouble("Withdrawal amount: ");
+        if (a.withdraw(amt)) {
+            System.out.printf("Withdrew %.2f. New balance: %.2f%n", amt, a.getBalance());
+        } else {
+            // messages already printed by withdraw()
+        }
+    }
+
+    private void displayAccounts() {
+        if (accounts.isEmpty()) {
+            System.out.println("No accounts created.");
+            return;
+        }
+        System.out.println("\nAccNo  | Holder Name          |     Balance");
+        System.out.println("-------------------------------------------");
+        for (Account a : accounts) System.out.println(a);
+    }
+
+    private Account findAccount(int accNo) {
+        for (Account a : accounts) if (a.getAccNo() == accNo) return a;
+        return null;
+    }
+
+    private int readInt(String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            String line = sc.nextLine().trim();
+            try { return Integer.parseInt(line); }
+            catch (NumberFormatException e) { System.out.println("Enter a valid integer."); }
+        }
+    }
+
+    private double readPositiveDouble(String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            try {
+                double v = Double.parseDouble(sc.nextLine().trim());
+                if (v <= 0) System.out.println("Amount must be positive.");
+                else return v;
+            } catch (NumberFormatException e) {
+                System.out.println("Enter a valid number.");
+            }
+        }
+    }
+
+    private double readNonNegativeDouble(String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            try {
+                double v = Double.parseDouble(sc.nextLine().trim());
+                if (v < 0) System.out.println("Amount cannot be negative.");
+                else return v;
+            } catch (NumberFormatException e) {
+                System.out.println("Enter a valid number.");
+            }
+        }
+    }
+
+    private void seedAccounts() {
+        Account a1 = new Account("Priya", 1000);
+        Account a2 = new Account("Rahul", 500);
+        accounts.add(a1);
+        accounts.add(a2);
+    }
+}
